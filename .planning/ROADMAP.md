@@ -64,10 +64,10 @@ Plans:
   3. Action correctly injects stats between README template markers
   4. Action skips commit when no changes detected
   5. Git config uses local scope and doesn't leak to other workflow steps
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] To be planned
+- [ ] 03-01-PLAN.md — Modernize git commit workflow with actor detection and change detection
 
 ### Phase 4: Marketplace Publishing
 **Goal**: Action is published to GitHub Marketplace with complete documentation and proper versioning
@@ -93,5 +93,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. API Migration Foundation | 2/2 | ✓ Complete | 2026-02-11 |
 | 2. Stats Retrieval & Display | 2/2 | ✓ Complete | 2026-02-11 |
-| 3. Git Operations Modernization | 0/TBD | Not started | - |
+| 3. Git Operations Modernization | 0/1 | Not started | - |
 | 4. Marketplace Publishing | 0/TBD | Not started | - |
