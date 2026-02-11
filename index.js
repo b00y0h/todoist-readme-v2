@@ -148,6 +148,37 @@ const commitReadme = async () => {
   process.exit(jobFailFlag ? 1 : 0);
 };
 
+function handleApiError(error) {
+  if (error.response) {
+    // Server responded with error status
+    const status = error.response.status;
+    const message = error.response.data?.message || error.message;
+
+    if (status === 401) {
+      core.setFailed("Authentication failed. Check your TODOIST_API_KEY is valid.");
+    } else if (status === 403) {
+      core.setFailed("Access forbidden. Your API key may lack required permissions.");
+    } else if (status === 404) {
+      core.setFailed("Stats endpoint not found. Todoist API may have changed.");
+    } else if (status === 429) {
+      // Rate limit - this should be handled by axios-retry, but if we get here:
+      core.setFailed("Rate limited by Todoist API. Try again later.");
+    } else if (status >= 500) {
+      core.setFailed(`Todoist server error (${status}). Try again later.`);
+    } else {
+      core.setFailed(`Todoist API error (${status}): ${message}`);
+    }
+  } else if (error.code === "ECONNABORTED") {
+    core.setFailed("Request timed out. Todoist API may be slow or unreachable.");
+  } else if (error.request) {
+    // Request made but no response received
+    core.setFailed("No response from Todoist API. Check network connectivity.");
+  } else {
+    // Error setting up request
+    core.setFailed(`Failed to call Todoist API: ${error.message}`);
+  }
+}
+
 (async () => {
   await main();
 })();
