@@ -110,6 +110,93 @@ function formatLongestStreakStat(goals) {
   return `⏳  Longest streak is **${count}** days`;
 }
 
+// Granular tag configuration - maps tag names to formatter functions
+const TAG_CONFIG = {
+  'TODO-IST-KARMA': (data) => formatKarmaStat(data.karma),
+  'TODO-IST-DAILY': (data) => formatDailyTasksStat(data.days_items),
+  'TODO-IST-WEEKLY': (data) => formatWeeklyTasksStat(data.week_items, PREMIUM === "true"),
+  'TODO-IST-TOTAL': (data) => formatTotalTasksStat(data.completed_count),
+  'TODO-IST-CURRENT-STREAK': (data) => formatCurrentStreakStat(data.goals),
+  'TODO-IST-LONGEST-STREAK': (data) => formatLongestStreakStat(data.goals)
+};
+
+function detectDisplayMode(readmeContent) {
+  const hasLegacyTags = readmeContent.includes('<!-- TODO-IST:START -->') &&
+                        readmeContent.includes('<!-- TODO-IST:END -->');
+
+  const hasGranularTags = Object.keys(TAG_CONFIG).some(tag =>
+    readmeContent.includes(`<!-- ${tag}:START -->`)
+  );
+
+  if (hasGranularTags) return 'granular';
+  if (hasLegacyTags) return 'legacy';
+  return 'none';
+}
+
+function replaceTag(content, tagName, newContent) {
+  const startTag = `<!-- ${tagName}:START -->`;
+  const endTag = `<!-- ${tagName}:END -->`;
+
+  const startIndex = content.indexOf(startTag);
+  if (startIndex === -1) {
+    core.warning(`${tagName}: Start tag not found`);
+    return content;
+  }
+
+  const endIndex = content.indexOf(endTag, startIndex);
+  if (endIndex === -1) {
+    core.warning(`${tagName}: End tag not found (start tag exists at position ${startIndex})`);
+    return content;
+  }
+
+  const endOfStartTag = startIndex + startTag.length;
+
+  return [
+    content.slice(0, endOfStartTag),
+    '\n',
+    newContent,
+    '\n',
+    content.slice(endIndex)
+  ].join('');
+}
+
+function updateReadmeGranular(data, readmeContent) {
+  let updated = readmeContent;
+  let processedTags = [];
+  let skippedTags = [];
+
+  for (const [tagName, formatter] of Object.entries(TAG_CONFIG)) {
+    const startTag = `<!-- ${tagName}:START -->`;
+
+    if (readmeContent.includes(startTag)) {
+      const formattedStat = formatter(data);
+
+      if (formattedStat !== null) {
+        updated = replaceTag(updated, tagName, formattedStat);
+        processedTags.push(tagName);
+      } else {
+        // Stat unavailable (e.g., premium feature for free user)
+        skippedTags.push(tagName);
+        core.warning(`${tagName}: Stat unavailable (check premium status or API response)`);
+      }
+    }
+  }
+
+  if (processedTags.length > 0) {
+    core.info(`Updated ${processedTags.length} stat(s): ${processedTags.join(', ')}`);
+  }
+
+  if (skippedTags.length > 0) {
+    core.info(`Skipped ${skippedTags.length} unavailable stat(s): ${skippedTags.join(', ')}`);
+  }
+
+  if (processedTags.length === 0 && skippedTags.length === 0) {
+    core.warning('No valid TODO-IST granular tags found in README');
+  }
+
+  return updated;
+}
+
 async function updateReadme(data) {
   const { karma, completed_count, days_items, goals, week_items } = data;
 
