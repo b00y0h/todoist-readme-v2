@@ -91,6 +91,19 @@ function formatTotalTasksStat(completed_count) {
   return `✅  Completed **${Humanize.intComma(completed_count)}** tasks so far`;
 }
 
+function formatCurrentStreakStat(goals) {
+  const count = goals?.current_daily_streak?.count;
+
+  if (count === undefined) return null;
+
+  if (count === 0) {
+    return `🔥  Current streak: **0 days** - Start one today!`;
+  }
+
+  const days = count === 1 ? 'day' : 'days';
+  return `🔥  Current streak: **${count} ${days}**`;
+}
+
 function formatLongestStreakStat(goals) {
   const count = goals?.max_daily_streak?.count;
   if (count === undefined) return null;
@@ -105,6 +118,7 @@ async function updateReadme(data) {
     formatDailyTasksStat(days_items),
     formatWeeklyTasksStat(week_items, PREMIUM === "true"),
     formatTotalTasksStat(completed_count),
+    formatCurrentStreakStat(goals),
     formatLongestStreakStat(goals)
   ].filter(Boolean);
 
