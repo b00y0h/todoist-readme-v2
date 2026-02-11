@@ -51,9 +51,6 @@ async function main() {
       }
     );
 
-    // Debug: log the full response structure
-    core.info("Stats response: " + JSON.stringify(response.data, null, 2));
-
     const stats = response.data;
     if (!stats) {
       core.setFailed("Todoist API did not return stats data");
@@ -71,59 +68,31 @@ let jobFailFlag = false;
 const README_FILE_PATH = "./README.md";
 
 async function updateReadme(data) {
-  // Log available fields for debugging
-  core.info("Available stats fields: " + Object.keys(data).join(", "));
-
   const { karma, completed_count, days_items, goals, week_items } = data;
 
   // Karma points
   if (karma !== undefined) {
-    const karmaPoint = [`🏆  **${Humanize.intComma(karma)}** Karma Points`];
-    todoist.push(karmaPoint);
-  } else {
-    core.warning("karma field not found in stats");
+    todoist.push([`🏆  **${Humanize.intComma(karma)}** Karma Points`]);
   }
 
   // Daily tasks
-  if (days_items && days_items[0] && days_items[0].total_completed !== undefined) {
-    const dailyGoal = [
-      `🌸  Completed **${days_items[0].total_completed.toString()}** tasks today`,
-    ];
-    todoist.push(dailyGoal);
-  } else {
-    core.warning("days_items field not found or empty in stats");
+  if (days_items?.[0]?.total_completed !== undefined) {
+    todoist.push([`🌸  Completed **${days_items[0].total_completed}** tasks today`]);
   }
 
   // Weekly tasks (premium only)
-  if (PREMIUM == "true") {
-    if (week_items && week_items[0] && week_items[0].total_completed !== undefined) {
-      const weekItems = [
-        `🗓  Completed **${week_items[0].total_completed.toString()}** tasks this week`,
-      ];
-      todoist.push(weekItems);
-    } else {
-      core.warning("week_items field not found or empty in stats (premium feature)");
-    }
+  if (PREMIUM === "true" && week_items?.[0]?.total_completed !== undefined) {
+    todoist.push([`🗓  Completed **${week_items[0].total_completed}** tasks this week`]);
   }
 
   // Total completed tasks
   if (completed_count !== undefined) {
-    const totalTasks = [
-      `✅  Completed **${Humanize.intComma(completed_count)}** tasks so far`,
-    ];
-    todoist.push(totalTasks);
-  } else {
-    core.warning("completed_count field not found in stats");
+    todoist.push([`✅  Completed **${Humanize.intComma(completed_count)}** tasks so far`]);
   }
 
   // Longest streak
   if (goals?.max_daily_streak?.count !== undefined) {
-    const longestStreak = [
-      `⏳  Longest streak is **${goals.max_daily_streak.count}** days`,
-    ];
-    todoist.push(longestStreak);
-  } else {
-    core.warning("Streak data not found. Goals object: " + JSON.stringify(goals));
+    todoist.push([`⏳  Longest streak is **${goals.max_daily_streak.count}** days`]);
   }
 
   if (todoist.length == 0) return;
