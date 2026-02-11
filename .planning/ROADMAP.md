@@ -51,8 +51,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Add current streak display and extract reusable stat formatters
-- [ ] 02-02-PLAN.md — Implement granular tag customization system
+- [x] 02-01-PLAN.md — Add current streak display and extract reusable stat formatters
+- [x] 02-02-PLAN.md — Implement granular tag customization system
 
 ### Phase 3: Git Operations Modernization
 **Goal**: Action commits README changes using correct author identity auto-detected from GitHub context
@@ -79,10 +79,11 @@ Plans:
   3. Action has migration guide for users upgrading from v1
   4. Action has v2.0.0 release tag with changelog
   5. Action follows semantic versioning with major version tag strategy
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] To be planned
+- [ ] 04-01-PLAN.md — Create documentation and metadata for marketplace publishing
+- [ ] 04-02-PLAN.md — Create release automation and publish to marketplace
 
 ## Progress
 
@@ -91,7 +92,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. API Migration Foundation | 2/2 | ✓ Complete | 2026-02-11 |
-| 2. Stats Retrieval & Display | 2/2 | ✓ Complete | 2026-02-11 |
-| 3. Git Operations Modernization | 1/1 | ✓ Complete | 2026-02-11 |
-| 4. Marketplace Publishing | 0/TBD | Not started | - |
+| 1. API Migration Foundation | 2/2 | Complete | 2026-02-11 |
+| 2. Stats Retrieval & Display | 2/2 | Complete | 2026-02-11 |
+| 3. Git Operations Modernization | 1/1 | Complete | 2026-02-11 |
+| 4. Marketplace Publishing | 0/2 | Planned | - |
