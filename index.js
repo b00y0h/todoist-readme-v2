@@ -118,6 +118,25 @@ const TAG_CONFIG = {
   'TODO-IST-LONGEST-STREAK': (data) => formatLongestStreakStat(data.goals)
 };
 
+// Get GitHub actor identity for git commits
+function getActorIdentity() {
+  const actor = process.env.GITHUB_ACTOR;
+  const actorId = process.env.GITHUB_ACTOR_ID;
+
+  if (actor && actorId) {
+    return {
+      name: actor,
+      email: `${actorId}+${actor}@users.noreply.github.com`
+    };
+  }
+
+  // Fallback to github-actions bot
+  return {
+    name: "github-actions[bot]",
+    email: "41898282+github-actions[bot]@users.noreply.github.com"
+  };
+}
+
 function detectDisplayMode(readmeContent) {
   const hasLegacyTags = readmeContent.includes('<!-- TODO-IST:START -->') &&
                         readmeContent.includes('<!-- TODO-IST:END -->');
@@ -309,16 +328,17 @@ const buildReadme = (prevReadmeContent, newReadmeContent) => {
 };
 
 const commitReadme = async () => {
-  // Getting config
-  const committerUsername = "Abhishek Naidu";
-  const committerEmail = "example@gmail.com";
+  // Get committer identity from GitHub Actions context
+  const { name, email } = getActorIdentity();
+  core.info(`Committing as: ${name} <${email}>`);
+
   const commitMessage = "Todoist updated.";
-  // Doing commit and push
-  await exec("git", ["config", "--global", "user.email", committerEmail]);
-  await exec("git", ["config", "--global", "user.name", committerUsername]);
+
+  // Configure git with local scope (doesn't leak to other workflow steps)
+  await exec("git", ["config", "--local", "user.email", email]);
+  await exec("git", ["config", "--local", "user.name", name]);
   await exec("git", ["add", README_FILE_PATH]);
   await exec("git", ["commit", "-m", commitMessage]);
-  // await exec('git', ['fetch']);
   await exec("git", ["push"]);
   core.info("Readme updated successfully.");
 };
