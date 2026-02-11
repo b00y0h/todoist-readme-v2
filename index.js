@@ -3,6 +3,36 @@ const axios = require("axios");
 const Humanize = require("humanize-plus");
 const fs = require("fs");
 const exec = require("./exec");
+const axiosRetry = require("axios-retry").default;
+
+// Configure retry behavior for rate limits and transient errors
+axiosRetry(axios, {
+  retries: 3,
+  retryDelay: (retryCount, error) => {
+    // Respect Retry-After header if present
+    const retryAfter = error.response?.headers?.["retry-after"];
+    if (retryAfter) {
+      core.info(`Rate limited. Waiting ${retryAfter}s as requested by Todoist.`);
+      return parseInt(retryAfter, 10) * 1000;
+    }
+    // Exponential backoff: 1s, 2s, 4s
+    const delay = Math.pow(2, retryCount - 1) * 1000;
+    core.info(`Retrying in ${delay / 1000}s (attempt ${retryCount}/3)`);
+    return delay;
+  },
+  retryCondition: (error) => {
+    // Retry on rate limit (429) and server errors (5xx)
+    const status = error.response?.status;
+    return (
+      axiosRetry.isNetworkError(error) ||
+      status === 429 ||
+      (status >= 500 && status < 600)
+    );
+  },
+  onRetry: (retryCount, error, requestConfig) => {
+    core.warning(`Todoist API request failed, retrying (attempt ${retryCount}): ${error.message}`);
+  }
+});
 
 const TODOIST_API_KEY = core.getInput("TODOIST_API_KEY");
 const PREMIUM = core.getInput("PREMIUM");

@@ -6739,6 +6739,53 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 /***/ }),
 
+/***/ 1753:
+/***/ ((module) => {
+
+"use strict";
+
+
+const denyList = new Set([
+	'ENOTFOUND',
+	'ENETUNREACH',
+
+	// SSL errors from https://github.com/nodejs/node/blob/fc8e3e2cdc521978351de257030db0076d79e0ab/src/crypto/crypto_common.cc#L301-L328
+	'UNABLE_TO_GET_ISSUER_CERT',
+	'UNABLE_TO_GET_CRL',
+	'UNABLE_TO_DECRYPT_CERT_SIGNATURE',
+	'UNABLE_TO_DECRYPT_CRL_SIGNATURE',
+	'UNABLE_TO_DECODE_ISSUER_PUBLIC_KEY',
+	'CERT_SIGNATURE_FAILURE',
+	'CRL_SIGNATURE_FAILURE',
+	'CERT_NOT_YET_VALID',
+	'CERT_HAS_EXPIRED',
+	'CRL_NOT_YET_VALID',
+	'CRL_HAS_EXPIRED',
+	'ERROR_IN_CERT_NOT_BEFORE_FIELD',
+	'ERROR_IN_CERT_NOT_AFTER_FIELD',
+	'ERROR_IN_CRL_LAST_UPDATE_FIELD',
+	'ERROR_IN_CRL_NEXT_UPDATE_FIELD',
+	'OUT_OF_MEM',
+	'DEPTH_ZERO_SELF_SIGNED_CERT',
+	'SELF_SIGNED_CERT_IN_CHAIN',
+	'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+	'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+	'CERT_CHAIN_TOO_LONG',
+	'CERT_REVOKED',
+	'INVALID_CA',
+	'PATH_LENGTH_EXCEEDED',
+	'INVALID_PURPOSE',
+	'CERT_UNTRUSTED',
+	'CERT_REJECTED',
+	'HOSTNAME_MISMATCH'
+]);
+
+// TODO: Use `error?.code` when targeting Node.js 14
+module.exports = error => !denyList.has(error && error.code);
+
+
+/***/ }),
+
 /***/ 6832:
 /***/ ((module) => {
 
@@ -31504,6 +31551,253 @@ module.exports = parseParams
 
 /***/ }),
 
+/***/ 7689:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DEFAULT_OPTIONS = exports.linearDelay = exports.exponentialDelay = exports.retryAfter = exports.isNetworkOrIdempotentRequestError = exports.isIdempotentRequestError = exports.isSafeRequestError = exports.isRetryableError = exports.isNetworkError = exports.namespace = void 0;
+const is_retry_allowed_1 = __importDefault(__nccwpck_require__(1753));
+exports.namespace = 'axios-retry';
+function isNetworkError(error) {
+    const CODE_EXCLUDE_LIST = ['ERR_CANCELED', 'ECONNABORTED'];
+    if (error.response) {
+        return false;
+    }
+    if (!error.code) {
+        return false;
+    }
+    // Prevents retrying timed out & cancelled requests
+    if (CODE_EXCLUDE_LIST.includes(error.code)) {
+        return false;
+    }
+    // Prevents retrying unsafe errors
+    return (0, is_retry_allowed_1.default)(error);
+}
+exports.isNetworkError = isNetworkError;
+const SAFE_HTTP_METHODS = ['get', 'head', 'options'];
+const IDEMPOTENT_HTTP_METHODS = SAFE_HTTP_METHODS.concat(['put', 'delete']);
+function isRetryableError(error) {
+    return (error.code !== 'ECONNABORTED' &&
+        (!error.response ||
+            error.response.status === 429 ||
+            (error.response.status >= 500 && error.response.status <= 599)));
+}
+exports.isRetryableError = isRetryableError;
+function isSafeRequestError(error) {
+    var _a;
+    if (!((_a = error.config) === null || _a === void 0 ? void 0 : _a.method)) {
+        // Cannot determine if the request can be retried
+        return false;
+    }
+    return isRetryableError(error) && SAFE_HTTP_METHODS.indexOf(error.config.method) !== -1;
+}
+exports.isSafeRequestError = isSafeRequestError;
+function isIdempotentRequestError(error) {
+    var _a;
+    if (!((_a = error.config) === null || _a === void 0 ? void 0 : _a.method)) {
+        // Cannot determine if the request can be retried
+        return false;
+    }
+    return isRetryableError(error) && IDEMPOTENT_HTTP_METHODS.indexOf(error.config.method) !== -1;
+}
+exports.isIdempotentRequestError = isIdempotentRequestError;
+function isNetworkOrIdempotentRequestError(error) {
+    return isNetworkError(error) || isIdempotentRequestError(error);
+}
+exports.isNetworkOrIdempotentRequestError = isNetworkOrIdempotentRequestError;
+function retryAfter(error = undefined) {
+    var _a;
+    const retryAfterHeader = (_a = error === null || error === void 0 ? void 0 : error.response) === null || _a === void 0 ? void 0 : _a.headers['retry-after'];
+    if (!retryAfterHeader) {
+        return 0;
+    }
+    // if the retry after header is a number, convert it to milliseconds
+    let retryAfterMs = (Number(retryAfterHeader) || 0) * 1000;
+    // If the retry after header is a date, get the number of milliseconds until that date
+    if (retryAfterMs === 0) {
+        retryAfterMs = (new Date(retryAfterHeader).valueOf() || 0) - Date.now();
+    }
+    return Math.max(0, retryAfterMs);
+}
+exports.retryAfter = retryAfter;
+function noDelay(_retryNumber = 0, error = undefined) {
+    return Math.max(0, retryAfter(error));
+}
+function exponentialDelay(retryNumber = 0, error = undefined, delayFactor = 100) {
+    const calculatedDelay = Math.pow(2, retryNumber) * delayFactor;
+    const delay = Math.max(calculatedDelay, retryAfter(error));
+    const randomSum = delay * 0.2 * Math.random(); // 0-20% of the delay
+    return delay + randomSum;
+}
+exports.exponentialDelay = exponentialDelay;
+/**
+ * Linear delay
+ * @param {number | undefined} delayFactor - delay factor in milliseconds (default: 100)
+ * @returns {function} (retryNumber: number, error: AxiosError | undefined) => number
+ */
+function linearDelay(delayFactor = 100) {
+    return (retryNumber = 0, error = undefined) => {
+        const delay = retryNumber * delayFactor;
+        return Math.max(delay, retryAfter(error));
+    };
+}
+exports.linearDelay = linearDelay;
+exports.DEFAULT_OPTIONS = {
+    retries: 3,
+    retryCondition: isNetworkOrIdempotentRequestError,
+    retryDelay: noDelay,
+    shouldResetTimeout: false,
+    onRetry: () => { },
+    onMaxRetryTimesExceeded: () => { },
+    validateResponse: null
+};
+function getRequestOptions(config, defaultOptions) {
+    return Object.assign(Object.assign(Object.assign({}, exports.DEFAULT_OPTIONS), defaultOptions), config[exports.namespace]);
+}
+function setCurrentState(config, defaultOptions, resetLastRequestTime = false) {
+    const currentState = getRequestOptions(config, defaultOptions || {});
+    currentState.retryCount = currentState.retryCount || 0;
+    if (!currentState.lastRequestTime || resetLastRequestTime) {
+        currentState.lastRequestTime = Date.now();
+    }
+    config[exports.namespace] = currentState;
+    return currentState;
+}
+function fixConfig(axiosInstance, config) {
+    // @ts-ignore
+    if (axiosInstance.defaults.agent === config.agent) {
+        // @ts-ignore
+        delete config.agent;
+    }
+    if (axiosInstance.defaults.httpAgent === config.httpAgent) {
+        delete config.httpAgent;
+    }
+    if (axiosInstance.defaults.httpsAgent === config.httpsAgent) {
+        delete config.httpsAgent;
+    }
+}
+function shouldRetry(currentState, error) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { retries, retryCondition } = currentState;
+        const shouldRetryOrPromise = (currentState.retryCount || 0) < retries && retryCondition(error);
+        // This could be a promise
+        if (typeof shouldRetryOrPromise === 'object') {
+            try {
+                const shouldRetryPromiseResult = yield shouldRetryOrPromise;
+                // keep return true unless shouldRetryPromiseResult return false for compatibility
+                return shouldRetryPromiseResult !== false;
+            }
+            catch (_err) {
+                return false;
+            }
+        }
+        return shouldRetryOrPromise;
+    });
+}
+function handleRetry(axiosInstance, currentState, error, config) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        currentState.retryCount += 1;
+        const { retryDelay, shouldResetTimeout, onRetry } = currentState;
+        const delay = retryDelay(currentState.retryCount, error);
+        // Axios fails merging this configuration to the default configuration because it has an issue
+        // with circular structures: https://github.com/mzabriskie/axios/issues/370
+        fixConfig(axiosInstance, config);
+        if (!shouldResetTimeout && config.timeout && currentState.lastRequestTime) {
+            const lastRequestDuration = Date.now() - currentState.lastRequestTime;
+            const timeout = config.timeout - lastRequestDuration - delay;
+            if (timeout <= 0) {
+                return Promise.reject(error);
+            }
+            config.timeout = timeout;
+        }
+        config.transformRequest = [(data) => data];
+        yield onRetry(currentState.retryCount, error, config);
+        if ((_a = config.signal) === null || _a === void 0 ? void 0 : _a.aborted) {
+            return Promise.resolve(axiosInstance(config));
+        }
+        return new Promise((resolve) => {
+            var _a;
+            const abortListener = () => {
+                clearTimeout(timeout);
+                resolve(axiosInstance(config));
+            };
+            const timeout = setTimeout(() => {
+                var _a;
+                resolve(axiosInstance(config));
+                if ((_a = config.signal) === null || _a === void 0 ? void 0 : _a.removeEventListener) {
+                    config.signal.removeEventListener('abort', abortListener);
+                }
+            }, delay);
+            if ((_a = config.signal) === null || _a === void 0 ? void 0 : _a.addEventListener) {
+                config.signal.addEventListener('abort', abortListener, { once: true });
+            }
+        });
+    });
+}
+function handleMaxRetryTimesExceeded(currentState, error) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (currentState.retryCount >= currentState.retries)
+            yield currentState.onMaxRetryTimesExceeded(error, currentState.retryCount);
+    });
+}
+const axiosRetry = (axiosInstance, defaultOptions) => {
+    const requestInterceptorId = axiosInstance.interceptors.request.use((config) => {
+        var _a;
+        setCurrentState(config, defaultOptions, true);
+        if ((_a = config[exports.namespace]) === null || _a === void 0 ? void 0 : _a.validateResponse) {
+            // by setting this, all HTTP responses will be go through the error interceptor first
+            config.validateStatus = () => false;
+        }
+        return config;
+    });
+    const responseInterceptorId = axiosInstance.interceptors.response.use(null, (error) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const { config } = error;
+        // If we have no information to retry the request
+        if (!config) {
+            return Promise.reject(error);
+        }
+        const currentState = setCurrentState(config, defaultOptions);
+        if (error.response && ((_a = currentState.validateResponse) === null || _a === void 0 ? void 0 : _a.call(currentState, error.response))) {
+            // no issue with response
+            return error.response;
+        }
+        if (yield shouldRetry(currentState, error)) {
+            return handleRetry(axiosInstance, currentState, error, config);
+        }
+        yield handleMaxRetryTimesExceeded(currentState, error);
+        return Promise.reject(error);
+    }));
+    return { requestInterceptorId, responseInterceptorId };
+};
+// Compatibility with CommonJS
+axiosRetry.isNetworkError = isNetworkError;
+axiosRetry.isSafeRequestError = isSafeRequestError;
+axiosRetry.isIdempotentRequestError = isIdempotentRequestError;
+axiosRetry.isNetworkOrIdempotentRequestError = isNetworkOrIdempotentRequestError;
+axiosRetry.exponentialDelay = exponentialDelay;
+axiosRetry.linearDelay = linearDelay;
+axiosRetry.isRetryableError = isRetryableError;
+exports["default"] = axiosRetry;
+
+
+/***/ }),
+
 /***/ 6958:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -36879,17 +37173,69 @@ const axios = __nccwpck_require__(6958);
 const Humanize = __nccwpck_require__(9157);
 const fs = __nccwpck_require__(9896);
 const exec = __nccwpck_require__(2294);
+const axiosRetry = (__nccwpck_require__(7689)["default"]);
+
+// Configure retry behavior for rate limits and transient errors
+axiosRetry(axios, {
+  retries: 3,
+  retryDelay: (retryCount, error) => {
+    // Respect Retry-After header if present
+    const retryAfter = error.response?.headers?.["retry-after"];
+    if (retryAfter) {
+      core.info(`Rate limited. Waiting ${retryAfter}s as requested by Todoist.`);
+      return parseInt(retryAfter, 10) * 1000;
+    }
+    // Exponential backoff: 1s, 2s, 4s
+    const delay = Math.pow(2, retryCount - 1) * 1000;
+    core.info(`Retrying in ${delay / 1000}s (attempt ${retryCount}/3)`);
+    return delay;
+  },
+  retryCondition: (error) => {
+    // Retry on rate limit (429) and server errors (5xx)
+    const status = error.response?.status;
+    return (
+      axiosRetry.isNetworkError(error) ||
+      status === 429 ||
+      (status >= 500 && status < 600)
+    );
+  },
+  onRetry: (retryCount, error, requestConfig) => {
+    core.warning(`Todoist API request failed, retrying (attempt ${retryCount}): ${error.message}`);
+  }
+});
 
 const TODOIST_API_KEY = core.getInput("TODOIST_API_KEY");
 const PREMIUM = core.getInput("PREMIUM");
 
 async function main() {
-  // v8 => v9
-  const stats = await axios(
-    "https://api.todoist.com/sync/v9/completed/get_stats",
-    { headers: { Authorization: `Bearer ${TODOIST_API_KEY}` } }
-  );
-  await updateReadme(stats.data);
+  try {
+    const response = await axios.post(
+      "https://api.todoist.com/api/v1/sync",
+      {
+        sync_token: "*",
+        resource_types: '["all"]'
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${TODOIST_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        timeout: 10000
+      }
+    );
+
+    // V1 API nests stats in response object
+    const stats = response.data.stats;
+    if (!stats) {
+      core.error("Stats not found in API response. Available keys: " + Object.keys(response.data).join(", "));
+      core.setFailed("Todoist API did not return stats data");
+      return;
+    }
+
+    await updateReadme(stats);
+  } catch (error) {
+    handleApiError(error);
+  }
 }
 
 let todoist = [];
@@ -37001,6 +37347,37 @@ const commitReadme = async () => {
   // Making job fail if one of the source fails
   process.exit(jobFailFlag ? 1 : 0);
 };
+
+function handleApiError(error) {
+  if (error.response) {
+    // Server responded with error status
+    const status = error.response.status;
+    const message = error.response.data?.message || error.message;
+
+    if (status === 401) {
+      core.setFailed("Authentication failed. Check your TODOIST_API_KEY is valid.");
+    } else if (status === 403) {
+      core.setFailed("Access forbidden. Your API key may lack required permissions.");
+    } else if (status === 404) {
+      core.setFailed("Stats endpoint not found. Todoist API may have changed.");
+    } else if (status === 429) {
+      // Rate limit - this should be handled by axios-retry, but if we get here:
+      core.setFailed("Rate limited by Todoist API. Try again later.");
+    } else if (status >= 500) {
+      core.setFailed(`Todoist server error (${status}). Try again later.`);
+    } else {
+      core.setFailed(`Todoist API error (${status}): ${message}`);
+    }
+  } else if (error.code === "ECONNABORTED") {
+    core.setFailed("Request timed out. Todoist API may be slow or unreachable.");
+  } else if (error.request) {
+    // Request made but no response received
+    core.setFailed("No response from Todoist API. Check network connectivity.");
+  } else {
+    // Error setting up request
+    core.setFailed(`Failed to call Todoist API: ${error.message}`);
+  }
+}
 
 (async () => {
   await main();
