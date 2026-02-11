@@ -48,10 +48,11 @@ Plans:
   6. Premium user can see tasks completed this week in README
   7. Non-premium user sees graceful fallback when weekly stats unavailable
   8. User can customize which stats display via granular tags
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] To be planned
+- [ ] 02-01-PLAN.md — Add current streak display and extract reusable stat formatters
+- [ ] 02-02-PLAN.md — Implement granular tag customization system
 
 ### Phase 3: Git Operations Modernization
 **Goal**: Action commits README changes using correct author identity auto-detected from GitHub context
@@ -91,6 +92,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. API Migration Foundation | 2/2 | ✓ Complete | 2026-02-11 |
-| 2. Stats Retrieval & Display | 0/TBD | Not started | - |
+| 2. Stats Retrieval & Display | 0/2 | Not started | - |
 | 3. Git Operations Modernization | 0/TBD | Not started | - |
 | 4. Marketplace Publishing | 0/TBD | Not started | - |
