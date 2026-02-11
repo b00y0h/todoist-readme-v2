@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Users can automatically showcase their Todoist productivity stats in their GitHub profile README without manual updates
-**Current focus:** Phase 1 - API Migration Foundation
+**Current focus:** Phase 1 complete, ready for Phase 2
 
 ## Current Position
 
@@ -48,7 +48,7 @@ Recent decisions affecting current work:
 - Use npx instead of local devDependency for @vercel/ncc: Local installation failed in Node 24 environment, npx provides reliable alternative
 - Downgrade @actions/core from 3.0.0 to 1.11.1: Version 3.0.0 uses ESM exports incompatible with ncc bundler's CommonJS expectations
 - Accept moderate npm audit vulnerabilities in transitive dependencies: Vulnerabilities in @actions/http-client's undici dependency, no fix available without major version changes
-- Use Todoist unified API v1 /sync endpoint: v9 API was shut down on Feb 10, 2026, v1 is the current supported endpoint
+- Use Todoist REST endpoint GET /api/v1/tasks/completed/stats: Returns full stats including karma, goals, and streaks. Sync endpoint only returns partial stats without karma/goals.
 - Implement exponential backoff with Retry-After header support: Best practice for rate limiting - respects server preferences while providing fallback
 - Comprehensive error handling with specific messages: Users need clear, actionable feedback when things fail
 

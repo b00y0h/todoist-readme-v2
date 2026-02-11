@@ -12,7 +12,7 @@ This roadmap transforms a broken GitHub Action into a working, published marketp
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: API Migration Foundation** - Establish working connection to Todoist API v1 and upgrade runtime
+- [x] **Phase 1: API Migration Foundation** - Establish working connection to Todoist API v1 and upgrade runtime
 - [ ] **Phase 2: Stats Retrieval & Display** - Restore all productivity stats features with improved error handling
 - [ ] **Phase 3: Git Operations Modernization** - Remove hardcoded credentials and refactor git automation
 - [ ] **Phase 4: Marketplace Publishing** - Prepare documentation, branding, and release for marketplace
@@ -32,8 +32,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Upgrade runtime to Node 20 and update dependencies
-- [ ] 01-02-PLAN.md — Migrate API from v9 to v1 with error handling and rate limits
+- [x] 01-01-PLAN.md — Upgrade runtime to Node 20 and update dependencies
+- [x] 01-02-PLAN.md — Migrate API from v9 to v1 with error handling and rate limits
 
 ### Phase 2: Stats Retrieval & Display
 **Goal**: Users see all productivity stats (karma, daily tasks, weekly tasks, streaks, total) in their README with proper formatting
@@ -90,7 +90,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. API Migration Foundation | 0/2 | Planned | - |
+| 1. API Migration Foundation | 2/2 | ✓ Complete | 2026-02-11 |
 | 2. Stats Retrieval & Display | 0/TBD | Not started | - |
 | 3. Git Operations Modernization | 0/TBD | Not started | - |
 | 4. Marketplace Publishing | 0/TBD | Not started | - |
