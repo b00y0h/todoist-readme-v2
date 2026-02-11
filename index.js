@@ -8,12 +8,34 @@ const TODOIST_API_KEY = core.getInput("TODOIST_API_KEY");
 const PREMIUM = core.getInput("PREMIUM");
 
 async function main() {
-  // v8 => v9
-  const stats = await axios(
-    "https://api.todoist.com/sync/v9/completed/get_stats",
-    { headers: { Authorization: `Bearer ${TODOIST_API_KEY}` } }
-  );
-  await updateReadme(stats.data);
+  try {
+    const response = await axios.post(
+      "https://api.todoist.com/api/v1/sync",
+      {
+        sync_token: "*",
+        resource_types: '["all"]'
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${TODOIST_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        timeout: 10000
+      }
+    );
+
+    // V1 API nests stats in response object
+    const stats = response.data.stats;
+    if (!stats) {
+      core.error("Stats not found in API response. Available keys: " + Object.keys(response.data).join(", "));
+      core.setFailed("Todoist API did not return stats data");
+      return;
+    }
+
+    await updateReadme(stats);
+  } catch (error) {
+    handleApiError(error);
+  }
 }
 
 let todoist = [];
