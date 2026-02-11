@@ -37237,33 +37237,49 @@ let todoist = [];
 let jobFailFlag = false;
 const README_FILE_PATH = "./README.md";
 
+// Stat formatter functions - reusable for both legacy and granular tag modes
+function formatKarmaStat(karma) {
+  if (karma === undefined) return null;
+  return `🏆  **${Humanize.intComma(karma)}** Karma Points`;
+}
+
+function formatDailyTasksStat(days_items) {
+  const count = days_items?.[0]?.total_completed;
+  if (count === undefined) return null;
+  return `🌸  Completed **${count}** tasks today`;
+}
+
+function formatWeeklyTasksStat(week_items, isPremium) {
+  if (!isPremium) return null;
+  const count = week_items?.[0]?.total_completed;
+  if (count === undefined) return null;
+  return `🗓  Completed **${count}** tasks this week`;
+}
+
+function formatTotalTasksStat(completed_count) {
+  if (completed_count === undefined) return null;
+  return `✅  Completed **${Humanize.intComma(completed_count)}** tasks so far`;
+}
+
+function formatLongestStreakStat(goals) {
+  const count = goals?.max_daily_streak?.count;
+  if (count === undefined) return null;
+  return `⏳  Longest streak is **${count}** days`;
+}
+
 async function updateReadme(data) {
   const { karma, completed_count, days_items, goals, week_items } = data;
 
-  // Karma points
-  if (karma !== undefined) {
-    todoist.push([`🏆  **${Humanize.intComma(karma)}** Karma Points`]);
-  }
+  const stats = [
+    formatKarmaStat(karma),
+    formatDailyTasksStat(days_items),
+    formatWeeklyTasksStat(week_items, PREMIUM === "true"),
+    formatTotalTasksStat(completed_count),
+    formatLongestStreakStat(goals)
+  ].filter(Boolean);
 
-  // Daily tasks
-  if (days_items?.[0]?.total_completed !== undefined) {
-    todoist.push([`🌸  Completed **${days_items[0].total_completed}** tasks today`]);
-  }
-
-  // Weekly tasks (premium only)
-  if (PREMIUM === "true" && week_items?.[0]?.total_completed !== undefined) {
-    todoist.push([`🗓  Completed **${week_items[0].total_completed}** tasks this week`]);
-  }
-
-  // Total completed tasks
-  if (completed_count !== undefined) {
-    todoist.push([`✅  Completed **${Humanize.intComma(completed_count)}** tasks so far`]);
-  }
-
-  // Longest streak
-  if (goals?.max_daily_streak?.count !== undefined) {
-    todoist.push([`⏳  Longest streak is **${goals.max_daily_streak.count}** days`]);
-  }
+  // Convert to legacy todoist array format
+  todoist = stats.map(stat => [stat]);
 
   if (todoist.length == 0) return;
 
