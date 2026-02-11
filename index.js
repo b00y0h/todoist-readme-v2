@@ -137,6 +137,23 @@ function getActorIdentity() {
   };
 }
 
+// Check if git has any staged changes
+async function hasGitChanges() {
+  try {
+    // diff-index --quiet exits with 0 if no changes, 1 if changes exist
+    await exec("git", ["diff-index", "--quiet", "HEAD", "--"]);
+    return false; // No changes (exit code 0)
+  } catch (error) {
+    // Exit code 1 means changes exist (this is expected)
+    if (error.code === 1) {
+      return true;
+    }
+    // Any other error (e.g., no HEAD in new repo) - log warning and allow commit attempt
+    core.warning(`git diff-index error (code ${error.code}): ${error.message}. Proceeding with commit attempt.`);
+    return true;
+  }
+}
+
 function detectDisplayMode(readmeContent) {
   const hasLegacyTags = readmeContent.includes('<!-- TODO-IST:START -->') &&
                         readmeContent.includes('<!-- TODO-IST:END -->');
@@ -328,16 +345,25 @@ const buildReadme = (prevReadmeContent, newReadmeContent) => {
 };
 
 const commitReadme = async () => {
+  // Stage the README first
+  await exec("git", ["add", README_FILE_PATH]);
+
+  // Check if there are actual changes to commit
+  const hasChanges = await hasGitChanges();
+  if (!hasChanges) {
+    core.info("No changes detected, skipping commit");
+    return;
+  }
+
   // Get committer identity from GitHub Actions context
   const { name, email } = getActorIdentity();
   core.info(`Committing as: ${name} <${email}>`);
 
-  const commitMessage = "Todoist updated.";
+  const commitMessage = "📊 Update Todoist stats";
 
   // Configure git with local scope (doesn't leak to other workflow steps)
   await exec("git", ["config", "--local", "user.email", email]);
   await exec("git", ["config", "--local", "user.name", name]);
-  await exec("git", ["add", README_FILE_PATH]);
   await exec("git", ["commit", "-m", commitMessage]);
   await exec("git", ["push"]);
   core.info("Readme updated successfully.");
