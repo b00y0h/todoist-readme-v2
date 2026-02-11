@@ -63,8 +63,6 @@ async function main() {
   }
 }
 
-let todoist = [];
-let jobFailFlag = false;
 const README_FILE_PATH = "./README.md";
 
 // Stat formatter functions - reusable for both legacy and granular tag modes
@@ -197,7 +195,7 @@ function updateReadmeGranular(data, readmeContent) {
   return updated;
 }
 
-async function updateReadme(data) {
+function updateReadmeLegacy(data, readmeContent) {
   const { karma, completed_count, days_items, goals, week_items } = data;
 
   const stats = [
@@ -209,32 +207,45 @@ async function updateReadme(data) {
     formatLongestStreakStat(goals)
   ].filter(Boolean);
 
-  // Convert to legacy todoist array format
-  todoist = stats.map(stat => [stat]);
+  if (stats.length === 0) {
+    core.warning('No stats available to display');
+    return readmeContent;
+  }
 
-  if (todoist.length == 0) return;
+  return buildReadme(readmeContent, stats.join("           \n"));
+}
 
-  if (todoist.length > 0) {
-    // console.log(todoist.length);
-    // const showTasks = todoist.reduce((todo, cur, index) => {
-    //   return todo + `\n${cur}        ` + (((index + 1) === todoist.length) ? '\n' : '');
-    // })
-    const readmeData = fs.readFileSync(README_FILE_PATH, "utf8");
+async function updateReadme(data) {
+  const readmeContent = fs.readFileSync(README_FILE_PATH, "utf8");
+  const mode = detectDisplayMode(readmeContent);
 
-    const newReadme = buildReadme(readmeData, todoist.join("           \n"));
-    if (newReadme !== readmeData) {
-      core.info("Writing to " + README_FILE_PATH);
-      fs.writeFileSync(README_FILE_PATH, newReadme);
-      if (!process.env.TEST_MODE) {
-        commitReadme();
-      }
-    } else {
-      core.info("No change detected, skipping");
-      process.exit(0);
+  core.info(`Display mode detected: ${mode}`);
+
+  if (mode === 'none') {
+    core.error('No TODO-IST tags found in README. Add either:\n' +
+               '  - Legacy: <!-- TODO-IST:START --> and <!-- TODO-IST:END -->\n' +
+               '  - Granular: <!-- TODO-IST-KARMA:START --> etc.');
+    process.exit(1);
+  }
+
+  let newReadme;
+
+  if (mode === 'granular') {
+    newReadme = updateReadmeGranular(data, readmeContent);
+  } else {
+    // Legacy mode - build all stats together
+    newReadme = updateReadmeLegacy(data, readmeContent);
+  }
+
+  if (newReadme !== readmeContent) {
+    core.info("Writing to " + README_FILE_PATH);
+    fs.writeFileSync(README_FILE_PATH, newReadme);
+    if (!process.env.TEST_MODE) {
+      commitReadme();
     }
   } else {
-    core.info("Nothing fetched");
-    process.exit(jobFailFlag ? 1 : 0);
+    core.info("No change detected, skipping");
+    process.exit(0);
   }
 }
 
@@ -286,8 +297,6 @@ const commitReadme = async () => {
   // await exec('git', ['fetch']);
   await exec("git", ["push"]);
   core.info("Readme updated successfully.");
-  // Making job fail if one of the source fails
-  process.exit(jobFailFlag ? 1 : 0);
 };
 
 function handleApiError(error) {

@@ -37233,8 +37233,6 @@ async function main() {
   }
 }
 
-let todoist = [];
-let jobFailFlag = false;
 const README_FILE_PATH = "./README.md";
 
 // Stat formatter functions - reusable for both legacy and granular tag modes
@@ -37280,7 +37278,94 @@ function formatLongestStreakStat(goals) {
   return `⏳  Longest streak is **${count}** days`;
 }
 
-async function updateReadme(data) {
+// Granular tag configuration - maps tag names to formatter functions
+const TAG_CONFIG = {
+  'TODO-IST-KARMA': (data) => formatKarmaStat(data.karma),
+  'TODO-IST-DAILY': (data) => formatDailyTasksStat(data.days_items),
+  'TODO-IST-WEEKLY': (data) => formatWeeklyTasksStat(data.week_items, PREMIUM === "true"),
+  'TODO-IST-TOTAL': (data) => formatTotalTasksStat(data.completed_count),
+  'TODO-IST-CURRENT-STREAK': (data) => formatCurrentStreakStat(data.goals),
+  'TODO-IST-LONGEST-STREAK': (data) => formatLongestStreakStat(data.goals)
+};
+
+function detectDisplayMode(readmeContent) {
+  const hasLegacyTags = readmeContent.includes('<!-- TODO-IST:START -->') &&
+                        readmeContent.includes('<!-- TODO-IST:END -->');
+
+  const hasGranularTags = Object.keys(TAG_CONFIG).some(tag =>
+    readmeContent.includes(`<!-- ${tag}:START -->`)
+  );
+
+  if (hasGranularTags) return 'granular';
+  if (hasLegacyTags) return 'legacy';
+  return 'none';
+}
+
+function replaceTag(content, tagName, newContent) {
+  const startTag = `<!-- ${tagName}:START -->`;
+  const endTag = `<!-- ${tagName}:END -->`;
+
+  const startIndex = content.indexOf(startTag);
+  if (startIndex === -1) {
+    core.warning(`${tagName}: Start tag not found`);
+    return content;
+  }
+
+  const endIndex = content.indexOf(endTag, startIndex);
+  if (endIndex === -1) {
+    core.warning(`${tagName}: End tag not found (start tag exists at position ${startIndex})`);
+    return content;
+  }
+
+  const endOfStartTag = startIndex + startTag.length;
+
+  return [
+    content.slice(0, endOfStartTag),
+    '\n',
+    newContent,
+    '\n',
+    content.slice(endIndex)
+  ].join('');
+}
+
+function updateReadmeGranular(data, readmeContent) {
+  let updated = readmeContent;
+  let processedTags = [];
+  let skippedTags = [];
+
+  for (const [tagName, formatter] of Object.entries(TAG_CONFIG)) {
+    const startTag = `<!-- ${tagName}:START -->`;
+
+    if (readmeContent.includes(startTag)) {
+      const formattedStat = formatter(data);
+
+      if (formattedStat !== null) {
+        updated = replaceTag(updated, tagName, formattedStat);
+        processedTags.push(tagName);
+      } else {
+        // Stat unavailable (e.g., premium feature for free user)
+        skippedTags.push(tagName);
+        core.warning(`${tagName}: Stat unavailable (check premium status or API response)`);
+      }
+    }
+  }
+
+  if (processedTags.length > 0) {
+    core.info(`Updated ${processedTags.length} stat(s): ${processedTags.join(', ')}`);
+  }
+
+  if (skippedTags.length > 0) {
+    core.info(`Skipped ${skippedTags.length} unavailable stat(s): ${skippedTags.join(', ')}`);
+  }
+
+  if (processedTags.length === 0 && skippedTags.length === 0) {
+    core.warning('No valid TODO-IST granular tags found in README');
+  }
+
+  return updated;
+}
+
+function updateReadmeLegacy(data, readmeContent) {
   const { karma, completed_count, days_items, goals, week_items } = data;
 
   const stats = [
@@ -37292,32 +37377,45 @@ async function updateReadme(data) {
     formatLongestStreakStat(goals)
   ].filter(Boolean);
 
-  // Convert to legacy todoist array format
-  todoist = stats.map(stat => [stat]);
+  if (stats.length === 0) {
+    core.warning('No stats available to display');
+    return readmeContent;
+  }
 
-  if (todoist.length == 0) return;
+  return buildReadme(readmeContent, stats.join("           \n"));
+}
 
-  if (todoist.length > 0) {
-    // console.log(todoist.length);
-    // const showTasks = todoist.reduce((todo, cur, index) => {
-    //   return todo + `\n${cur}        ` + (((index + 1) === todoist.length) ? '\n' : '');
-    // })
-    const readmeData = fs.readFileSync(README_FILE_PATH, "utf8");
+async function updateReadme(data) {
+  const readmeContent = fs.readFileSync(README_FILE_PATH, "utf8");
+  const mode = detectDisplayMode(readmeContent);
 
-    const newReadme = buildReadme(readmeData, todoist.join("           \n"));
-    if (newReadme !== readmeData) {
-      core.info("Writing to " + README_FILE_PATH);
-      fs.writeFileSync(README_FILE_PATH, newReadme);
-      if (!process.env.TEST_MODE) {
-        commitReadme();
-      }
-    } else {
-      core.info("No change detected, skipping");
-      process.exit(0);
+  core.info(`Display mode detected: ${mode}`);
+
+  if (mode === 'none') {
+    core.error('No TODO-IST tags found in README. Add either:\n' +
+               '  - Legacy: <!-- TODO-IST:START --> and <!-- TODO-IST:END -->\n' +
+               '  - Granular: <!-- TODO-IST-KARMA:START --> etc.');
+    process.exit(1);
+  }
+
+  let newReadme;
+
+  if (mode === 'granular') {
+    newReadme = updateReadmeGranular(data, readmeContent);
+  } else {
+    // Legacy mode - build all stats together
+    newReadme = updateReadmeLegacy(data, readmeContent);
+  }
+
+  if (newReadme !== readmeContent) {
+    core.info("Writing to " + README_FILE_PATH);
+    fs.writeFileSync(README_FILE_PATH, newReadme);
+    if (!process.env.TEST_MODE) {
+      commitReadme();
     }
   } else {
-    core.info("Nothing fetched");
-    process.exit(jobFailFlag ? 1 : 0);
+    core.info("No change detected, skipping");
+    process.exit(0);
   }
 }
 
@@ -37369,8 +37467,6 @@ const commitReadme = async () => {
   // await exec('git', ['fetch']);
   await exec("git", ["push"]);
   core.info("Readme updated successfully.");
-  // Making job fail if one of the source fails
-  process.exit(jobFailFlag ? 1 : 0);
 };
 
 function handleApiError(error) {
