@@ -29,10 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Action retrieves productivity stats data from working endpoint
   4. Action displays clear error messages when API requests fail
   5. Action respects rate limits and doesn't fail silently
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] To be planned
+- [ ] 01-01-PLAN.md — Upgrade runtime to Node 20 and update dependencies
+- [ ] 01-02-PLAN.md — Migrate API from v9 to v1 with error handling and rate limits
 
 ### Phase 2: Stats Retrieval & Display
 **Goal**: Users see all productivity stats (karma, daily tasks, weekly tasks, streaks, total) in their README with proper formatting
@@ -89,7 +90,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. API Migration Foundation | 0/TBD | Not started | - |
+| 1. API Migration Foundation | 0/2 | Planned | - |
 | 2. Stats Retrieval & Display | 0/TBD | Not started | - |
 | 3. Git Operations Modernization | 0/TBD | Not started | - |
 | 4. Marketplace Publishing | 0/TBD | Not started | - |
