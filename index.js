@@ -158,7 +158,31 @@ function replaceTag(content, tagName, newContent) {
   ].join('');
 }
 
+function detectUnknownTags(readmeContent) {
+  // Find all TODO-IST-* tags that aren't in our config
+  const tagPattern = /<!-- (TODO-IST-[A-Z-]+):START -->/g;
+  const validTags = Object.keys(TAG_CONFIG);
+  const unknownTags = [];
+
+  let match;
+  while ((match = tagPattern.exec(readmeContent)) !== null) {
+    const foundTag = match[1];
+    if (!validTags.includes(foundTag)) {
+      unknownTags.push(foundTag);
+    }
+  }
+
+  return unknownTags;
+}
+
 function updateReadmeGranular(data, readmeContent) {
+  // Check for potential typos
+  const unknownTags = detectUnknownTags(readmeContent);
+  if (unknownTags.length > 0) {
+    core.warning(`Unknown tag(s) found: ${unknownTags.join(', ')}`);
+    core.warning(`Valid tags are: ${Object.keys(TAG_CONFIG).join(', ')}`);
+  }
+
   let updated = readmeContent;
   let processedTags = [];
   let skippedTags = [];
