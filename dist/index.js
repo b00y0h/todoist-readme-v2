@@ -37213,7 +37213,7 @@ async function main() {
       "https://api.todoist.com/api/v1/sync",
       {
         sync_token: "*",
-        resource_types: '["all"]'
+        resource_types: '["stats", "user"]'
       },
       {
         headers: {
@@ -37223,6 +37223,14 @@ async function main() {
         timeout: 10000
       }
     );
+
+    // Debug: log all available response keys
+    core.info("Response keys: " + Object.keys(response.data).join(", "));
+
+    // Check for user object (may contain karma)
+    if (response.data.user) {
+      core.info("User object: " + JSON.stringify(response.data.user, null, 2));
+    }
 
     // V1 API nests stats in response object
     const stats = response.data.stats;
@@ -37235,7 +37243,9 @@ async function main() {
     // Debug: log the actual stats structure to understand v1 format
     core.info("Stats structure: " + JSON.stringify(stats, null, 2));
 
-    await updateReadme(stats);
+    // Merge user data into stats if available (karma lives in user object in v1)
+    const user = response.data.user || {};
+    await updateReadme(stats, user);
   } catch (error) {
     handleApiError(error);
   }
@@ -37245,18 +37255,20 @@ let todoist = [];
 let jobFailFlag = false;
 const README_FILE_PATH = "./README.md";
 
-async function updateReadme(data) {
+async function updateReadme(data, user = {}) {
   // Log available fields for debugging
   core.info("Available stats fields: " + Object.keys(data).join(", "));
+  core.info("Available user fields: " + Object.keys(user).join(", "));
 
-  const { karma, completed_count, days_items, goals, week_items } = data;
+  const { completed_count, days_items, goals, week_items } = data;
 
-  // Karma points
+  // Karma points - in v1 API, karma is in the user object, not stats
+  const karma = user.karma || data.karma;
   if (karma !== undefined) {
     const karmaPoint = [`🏆  **${Humanize.intComma(karma)}** Karma Points`];
     todoist.push(karmaPoint);
   } else {
-    core.warning("karma field not found in stats");
+    core.warning("karma field not found in stats or user object");
   }
 
   // Daily tasks
@@ -37291,14 +37303,15 @@ async function updateReadme(data) {
     core.warning("completed_count field not found in stats");
   }
 
-  // Longest streak
-  if (goals && goals.max_daily_streak && goals.max_daily_streak.count !== undefined) {
+  // Longest streak - check both stats.goals and user object
+  const maxStreak = goals?.max_daily_streak?.count || user.max_daily_streak || user.daily_goal;
+  if (maxStreak !== undefined) {
     const longestStreak = [
-      `⏳  Longest streak is **${goals.max_daily_streak.count}** days`,
+      `⏳  Longest streak is **${maxStreak}** days`,
     ];
     todoist.push(longestStreak);
   } else {
-    core.warning("goals.max_daily_streak field not found in stats. Goals object: " + JSON.stringify(goals));
+    core.warning("Streak data not found. Goals: " + JSON.stringify(goals) + ", User goal fields: daily_goal=" + user.daily_goal);
   }
 
   if (todoist.length == 0) return;
