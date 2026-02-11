@@ -37209,43 +37209,28 @@ const PREMIUM = core.getInput("PREMIUM");
 
 async function main() {
   try {
-    const response = await axios.post(
-      "https://api.todoist.com/api/v1/sync",
-      {
-        sync_token: "*",
-        resource_types: '["stats", "user"]'
-      },
+    // Use the dedicated productivity stats REST endpoint (not sync)
+    // Docs: https://developer.todoist.com/api/v1/#tag/User/operation/get_productivity_stats_api_v1_tasks_completed_stats_get
+    const response = await axios.get(
+      "https://api.todoist.com/api/v1/tasks/completed/stats",
       {
         headers: {
-          Authorization: `Bearer ${TODOIST_API_KEY}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${TODOIST_API_KEY}`
         },
         timeout: 10000
       }
     );
 
-    // Debug: log all available response keys
-    core.info("Response keys: " + Object.keys(response.data).join(", "));
+    // Debug: log the full response structure
+    core.info("Stats response: " + JSON.stringify(response.data, null, 2));
 
-    // Check for user object (may contain karma)
-    if (response.data.user) {
-      core.info("User object: " + JSON.stringify(response.data.user, null, 2));
-    }
-
-    // V1 API nests stats in response object
-    const stats = response.data.stats;
+    const stats = response.data;
     if (!stats) {
-      core.error("Stats not found in API response. Available keys: " + Object.keys(response.data).join(", "));
       core.setFailed("Todoist API did not return stats data");
       return;
     }
 
-    // Debug: log the actual stats structure to understand v1 format
-    core.info("Stats structure: " + JSON.stringify(stats, null, 2));
-
-    // Merge user data into stats if available (karma lives in user object in v1)
-    const user = response.data.user || {};
-    await updateReadme(stats, user);
+    await updateReadme(stats);
   } catch (error) {
     handleApiError(error);
   }
@@ -37255,20 +37240,18 @@ let todoist = [];
 let jobFailFlag = false;
 const README_FILE_PATH = "./README.md";
 
-async function updateReadme(data, user = {}) {
+async function updateReadme(data) {
   // Log available fields for debugging
   core.info("Available stats fields: " + Object.keys(data).join(", "));
-  core.info("Available user fields: " + Object.keys(user).join(", "));
 
-  const { completed_count, days_items, goals, week_items } = data;
+  const { karma, completed_count, days_items, goals, week_items } = data;
 
-  // Karma points - in v1 API, karma is in the user object, not stats
-  const karma = user.karma || data.karma;
+  // Karma points
   if (karma !== undefined) {
     const karmaPoint = [`🏆  **${Humanize.intComma(karma)}** Karma Points`];
     todoist.push(karmaPoint);
   } else {
-    core.warning("karma field not found in stats or user object");
+    core.warning("karma field not found in stats");
   }
 
   // Daily tasks
@@ -37303,15 +37286,14 @@ async function updateReadme(data, user = {}) {
     core.warning("completed_count field not found in stats");
   }
 
-  // Longest streak - check both stats.goals and user object
-  const maxStreak = goals?.max_daily_streak?.count || user.max_daily_streak || user.daily_goal;
-  if (maxStreak !== undefined) {
+  // Longest streak
+  if (goals?.max_daily_streak?.count !== undefined) {
     const longestStreak = [
-      `⏳  Longest streak is **${maxStreak}** days`,
+      `⏳  Longest streak is **${goals.max_daily_streak.count}** days`,
     ];
     todoist.push(longestStreak);
   } else {
-    core.warning("Streak data not found. Goals: " + JSON.stringify(goals) + ", User goal fields: daily_goal=" + user.daily_goal);
+    core.warning("Streak data not found. Goals object: " + JSON.stringify(goals));
   }
 
   if (todoist.length == 0) return;
