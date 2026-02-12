@@ -1,6 +1,6 @@
-name: 'Todoist Stats for README'
+name: 'Todoist Stats v2'
 author: Abhishek Naidu
-description: 'Display your Todoist productivity stats (karma, streaks, completed tasks) in your GitHub profile README'
+description: 'Display your Todoist productivity stats (karma, streaks, completed tasks) in your GitHub profile README. Built on the new Todoist REST API.'
 
 inputs:
   TODOIST_API_KEY:

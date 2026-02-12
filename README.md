@@ -1,11 +1,13 @@
 <p align="center">
   <img width="400" src="assets/todoist-stat.png">
-  <h3 align="center">Todoist Stats for README</h3>
+  <h3 align="center">Todoist Stats v2</h3>
 </p>
 
-# Todoist Stats for README
+# Todoist Stats v2
 
 Display your Todoist productivity stats in your GitHub profile README. Shows karma points, completed tasks, daily/weekly stats, and streaks.
+
+> **Built on the new Todoist REST API** — fully compatible with Todoist's current API after the Sync API v9 deprecation (February 2026).
 
 ## Features
 
@@ -21,7 +23,7 @@ Display your Todoist productivity stats in your GitHub profile README. Shows kar
 ## Quick Start
 
 ```yaml
-- uses: abhisheknaiidu/todoist-readme@v2
+- uses: b00y0h/todoist-readme-v2@v2
   with:
     TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
 ```
@@ -60,7 +62,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: abhisheknaiidu/todoist-readme@v2
+      - uses: b00y0h/todoist-readme-v2@v2
         with:
           TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
           PREMIUM: "true"  # Set to "false" for free users
@@ -101,7 +103,7 @@ Best streak: <!-- TODO-IST-LONGEST-STREAK:START --><!-- TODO-IST-LONGEST-STREAK:
 
 **Example: Conditional step based on stats update**
 ```yaml
-- uses: abhisheknaiidu/todoist-readme@v2
+- uses: b00y0h/todoist-readme-v2@v2
   id: todoist
   with:
     TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
@@ -192,7 +194,7 @@ Output: `⏳  Longest streak is 10 days`
      ```
    - **After (v2):**
      ```yaml
-     - uses: abhisheknaiidu/todoist-readme@v2
+     - uses: b00y0h/todoist-readme-v2@v2
        with:
          TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
      ```
@@ -226,7 +228,7 @@ Output: `⏳  Longest streak is 10 days`
 
 1. Update your workflow file to use `@v2`:
    ```yaml
-   - uses: abhisheknaiidu/todoist-readme@v2
+   - uses: b00y0h/todoist-readme-v2@v2
    ```
 
 2. Remove the `USERNAME` input if present
