@@ -1,112 +1,223 @@
 <p align="center">
   <img width="400" src="assets/todoist-stat.png">
-  <h3 align="center">🚧 Todoist Stats</h3>
-  <p align="center">⚡️📌 Update your Todoist Stats ✅ </p>
+  <h3 align="center">Todoist Stats for README</h3>
 </p>
 
----
+# Todoist Stats for README
+
+Display your Todoist productivity stats in your GitHub profile README. Shows karma points, completed tasks, daily/weekly stats, and streaks.
+
+## Features
+
+- **Karma points display** - Your current Todoist karma level
+- **Daily completed tasks** - Tasks completed today
+- **Weekly completed tasks** - Tasks completed this week (Premium users only)
+- **Total completed tasks** - All-time completed task count
+- **Current streak** - Your current daily streak with encouraging messages
+- **Longest streak** - Your historical best streak record
+- **Granular tag customization** - Place individual stats anywhere in your README
+- **Auto-updates via GitHub Actions** - Set it and forget it
+
+## Quick Start
+
+```yaml
+- uses: abhisheknaiidu/todoist-readme@v2
+  with:
+    TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
+```
 
 ## Setup
 
-### Prep work
+### Step 1: Get Your Todoist API Token
 
-1. You'll need a Todoist API Token. You can get that from [here](https://beta.todoist.com/prefs/integrations)
-   - if you're new to Todoist, then you can refer [here](#new-to-todoist).
-2. You need to save the Todoist API Token in the repository secrets. You can find that in the Settings of your Repository. Be sure to save those as the following.
-   - `TODOIST_API_KEY = <your todoist API token>`
-3. You need to update the README file(README.md) with 2 comments. You can refer [here](#update-your-readme) for updating it.
+1. Visit [Todoist Integrations Settings](https://todoist.com/prefs/integrations)
+2. Scroll to the "API token" section
+3. Copy your API token
 
-## Update your README
+### Step 2: Add Token as Repository Secret
 
-Add a comment to your `README.md` like this:
+1. Go to your repository Settings
+2. Navigate to **Secrets and variables** > **Actions**
+3. Click **New repository secret**
+4. Name: `TODOIST_API_KEY`
+5. Value: Paste your API token from Step 1
 
+### Step 3: Create Workflow File
+
+Create `.github/workflows/todoist-stats.yml` in your repository:
+
+```yaml
+name: Update Todoist Stats
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: abhisheknaiidu/todoist-readme@v2
+        with:
+          TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
+          PREMIUM: "true"  # Set to "false" for free users
+```
+
+### Step 4: Add Tags to Your README
+
+Choose one of two modes:
+
+**Legacy mode** (all stats in one block):
 ```markdown
-# Todoist Stats
-
 <!-- TODO-IST:START -->
 <!-- TODO-IST:END -->
 ```
 
-These lines will be our entry-points for the todoist stats.
-
-## New to Todoist
-
-Todoist gives you the confidence that everything’s organized and accounted for, so you can make progress on the things that are important to you.
-
-- Create a Todoist account from [here](https://todoist.com/users/showregister)
-- Get your Todoist API Key from your [here](https://beta.todoist.com/prefs/integrations)
-
-### Repository Workflow For Non-Premium Users
-
-Please follow the steps below:
-
-1. Go to your `<username>/<username>/actions`, hit `New workflow`, `set up a workflow yourself`, delete all the default content github made for you.
-2. Copy the following code and paste it to your new workflow you created at step 1:
-
-```yml
-name: Todoist Readme
-
-on:
-  workflow_dispatch:
-  schedule:
-    # Runs every minute
-    - cron: "* * * * *"
-
-jobs:
-  update-readme:
-    name: Update todoist stats
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: abhisheknaiidu/todoist-readme@master
-        with:
-          TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
-          PREMIUM: ""
+**Granular mode** (individual stats anywhere):
+```markdown
+Karma: <!-- TODO-IST-KARMA:START --><!-- TODO-IST-KARMA:END -->
+Today: <!-- TODO-IST-DAILY:START --><!-- TODO-IST-DAILY:END -->
+This week: <!-- TODO-IST-WEEKLY:START --><!-- TODO-IST-WEEKLY:END -->
+Total: <!-- TODO-IST-TOTAL:START --><!-- TODO-IST-TOTAL:END -->
+Current streak: <!-- TODO-IST-CURRENT-STREAK:START --><!-- TODO-IST-CURRENT-STREAK:END -->
+Best streak: <!-- TODO-IST-LONGEST-STREAK:START --><!-- TODO-IST-LONGEST-STREAK:END -->
 ```
 
-3. Go to your repo secrets by hitting `Settings => Secrets` tab in your profile repo. You can also enter the url https://github.com/USERNAME/USERNAME/settings/secrets . Please replace the `USERNAME` with your own username.
-4. Create a new `Secret`. `Name`: `TODOIST_API_KEY`, `Value`: Paste the Todoist API Token here. If you don't know what is the token, please go to [here](https://beta.todoist.com/prefs/integrations) to find your API Key there.
-5. Add a comment to your `README.md` like this:
+## Inputs
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `TODOIST_API_KEY` | Yes | - | Your Todoist API token from Integrations settings |
+| `PREMIUM` | No | `"false"` | Set to `"true"` if you have Todoist Premium (enables weekly stats) |
+
+## Available README Tags
+
+### Legacy Mode (All Stats Together)
+
+Place these tags in your README to show all stats in one block:
 
 ```markdown
-# Todoist Stats
-
 <!-- TODO-IST:START -->
 <!-- TODO-IST:END -->
 ```
 
-6. Go to Workflows menu (mentioned in step 1), click `Todoist Readme`, and click `Run workflow`.
-7. Go to your profile page. you will be able to see it.
-
-### Repository Workflow For Premium Users
-
-Please follow the steps below:
-
-1. Go to your `<username>/<username>/actions`, hit `New workflow`, `set up a workflow yourself`, delete all the default content github made for you.
-2. Copy the following code and paste it to your new workflow you created at step 1:
-
-```yml
-name: Todoist Readme
-
-on:
-  workflow_dispatch:
-  schedule:
-    # Runs every minute
-    - cron: "* * * * *"
-
-jobs:
-  update-readme:
-    name: Update todoist stats
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: abhisheknaiidu/todoist-readme@master
-        with:
-          TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
-          PREMIUM: true
+**Output example:**
+```
+🏆  7,995 Karma Points
+🌸  Completed 0 tasks today
+✅  Completed 15,300 tasks so far
+⏳  Longest streak is 10 days
 ```
 
-3. Remaining Steps will be same as Non-Premium Users.
+### Granular Mode (Individual Stats)
+
+Place individual stat tags anywhere in your README for custom layouts:
+
+#### Karma Points
+```markdown
+<!-- TODO-IST-KARMA:START --><!-- TODO-IST-KARMA:END -->
+```
+Output: `🏆  7,995 Karma Points`
+
+#### Daily Completed Tasks
+```markdown
+<!-- TODO-IST-DAILY:START --><!-- TODO-IST-DAILY:END -->
+```
+Output: `🌸  Completed 0 tasks today`
+
+#### Weekly Completed Tasks (Premium Only)
+```markdown
+<!-- TODO-IST-WEEKLY:START --><!-- TODO-IST-WEEKLY:END -->
+```
+Output: `🗓  Completed 12 tasks this week`
+
+#### Total Completed Tasks
+```markdown
+<!-- TODO-IST-TOTAL:START --><!-- TODO-IST-TOTAL:END -->
+```
+Output: `✅  Completed 15,300 tasks so far`
+
+#### Current Streak
+```markdown
+<!-- TODO-IST-CURRENT-STREAK:START --><!-- TODO-IST-CURRENT-STREAK:END -->
+```
+Output: `🔥  You're on a 3 day streak. Keep it going!`
+
+#### Longest Streak
+```markdown
+<!-- TODO-IST-LONGEST-STREAK:START --><!-- TODO-IST-LONGEST-STREAK:END -->
+```
+Output: `⏳  Longest streak is 10 days`
+
+**Note:** If you use any granular tags, the legacy `TODO-IST` tags will be ignored.
+
+## Migration Guide
+
+### Migrating from v1 to v2
+
+**Breaking Changes:**
+
+1. **Node.js Runtime Upgraded to Node 20**
+   - GitHub deprecated Node 16. v2 uses Node 20.
+   - No action required - this is handled automatically by GitHub Actions.
+
+2. **USERNAME Input Removed**
+   - **Before (v1):**
+     ```yaml
+     - uses: abhisheknaiidu/todoist-readme@v1
+       with:
+         TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
+         USERNAME: ${{ github.repository_owner }}
+     ```
+   - **After (v2):**
+     ```yaml
+     - uses: abhisheknaiidu/todoist-readme@v2
+       with:
+         TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
+     ```
+   - The committer identity is now auto-detected from GitHub actor. Remove the `USERNAME` input from your workflow.
+
+3. **Todoist API Migration**
+   - v2 uses Todoist's unified API v1 (Sync API v9 was deprecated February 10, 2026)
+   - Your API token remains the same - no action required.
+
+4. **PREMIUM Input Now Uses String Values**
+   - **Before (v1):**
+     ```yaml
+     PREMIUM: true
+     ```
+   - **After (v2):**
+     ```yaml
+     PREMIUM: "true"
+     ```
+   - Use string `"true"` or `"false"` instead of boolean values.
+
+**New Features in v2:**
+
+- **Granular tag customization** - Place individual stats anywhere (see README Tags section)
+- **Current streak display** - Shows your current daily streak with motivational messages
+- **Longest streak display** - Shows your all-time best streak
+- **Improved error handling** - Clear, actionable error messages
+- **Skip empty commits** - Only commits when README actually changes
+
+**Upgrade Steps:**
+
+1. Update your workflow file to use `@v2`:
+   ```yaml
+   - uses: abhisheknaiidu/todoist-readme@v2
+   ```
+
+2. Remove the `USERNAME` input if present
+
+3. Change `PREMIUM` from boolean to string:
+   ```yaml
+   PREMIUM: "true"  # or "false"
+   ```
+
+4. (Optional) Migrate to granular tags for custom layouts
 
 ## License
 
