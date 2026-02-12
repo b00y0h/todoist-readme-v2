@@ -305,6 +305,7 @@ async function updateReadme(data) {
     }
   } else {
     core.info("No change detected, skipping");
+    core.setOutput("stats_updated", "false");
     process.exit(0);
   }
 }
@@ -352,6 +353,7 @@ const commitReadme = async () => {
   const hasChanges = await hasGitChanges();
   if (!hasChanges) {
     core.info("No changes detected, skipping commit");
+    core.setOutput("stats_updated", "false");
     return;
   }
 
@@ -367,6 +369,7 @@ const commitReadme = async () => {
   await exec("git", ["commit", "-m", commitMessage]);
   await exec("git", ["push"]);
   core.info("Readme updated successfully.");
+  core.setOutput("stats_updated", "true");
 };
 
 function handleApiError(error) {

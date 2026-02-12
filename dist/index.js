@@ -37288,6 +37288,42 @@ const TAG_CONFIG = {
   'TODO-IST-LONGEST-STREAK': (data) => formatLongestStreakStat(data.goals)
 };
 
+// Get GitHub actor identity for git commits
+function getActorIdentity() {
+  const actor = process.env.GITHUB_ACTOR;
+  const actorId = process.env.GITHUB_ACTOR_ID;
+
+  if (actor && actorId) {
+    return {
+      name: actor,
+      email: `${actorId}+${actor}@users.noreply.github.com`
+    };
+  }
+
+  // Fallback to github-actions bot
+  return {
+    name: "github-actions[bot]",
+    email: "41898282+github-actions[bot]@users.noreply.github.com"
+  };
+}
+
+// Check if git has any staged changes
+async function hasGitChanges() {
+  try {
+    // diff-index --quiet exits with 0 if no changes, 1 if changes exist
+    await exec("git", ["diff-index", "--quiet", "HEAD", "--"]);
+    return false; // No changes (exit code 0)
+  } catch (error) {
+    // Exit code 1 means changes exist (this is expected)
+    if (error.code === 1) {
+      return true;
+    }
+    // Any other error (e.g., no HEAD in new repo) - log warning and allow commit attempt
+    core.warning(`git diff-index error (code ${error.code}): ${error.message}. Proceeding with commit attempt.`);
+    return true;
+  }
+}
+
 function detectDisplayMode(readmeContent) {
   const hasLegacyTags = readmeContent.includes('<!-- TODO-IST:START -->') &&
                         readmeContent.includes('<!-- TODO-IST:END -->');
@@ -37439,6 +37475,7 @@ async function updateReadme(data) {
     }
   } else {
     core.info("No change detected, skipping");
+    core.setOutput("stats_updated", "false");
     process.exit(0);
   }
 }
@@ -37479,18 +37516,30 @@ const buildReadme = (prevReadmeContent, newReadmeContent) => {
 };
 
 const commitReadme = async () => {
-  // Getting config
-  const committerUsername = "Abhishek Naidu";
-  const committerEmail = "example@gmail.com";
-  const commitMessage = "Todoist updated.";
-  // Doing commit and push
-  await exec("git", ["config", "--global", "user.email", committerEmail]);
-  await exec("git", ["config", "--global", "user.name", committerUsername]);
+  // Stage the README first
   await exec("git", ["add", README_FILE_PATH]);
+
+  // Check if there are actual changes to commit
+  const hasChanges = await hasGitChanges();
+  if (!hasChanges) {
+    core.info("No changes detected, skipping commit");
+    core.setOutput("stats_updated", "false");
+    return;
+  }
+
+  // Get committer identity from GitHub Actions context
+  const { name, email } = getActorIdentity();
+  core.info(`Committing as: ${name} <${email}>`);
+
+  const commitMessage = "📊 Update Todoist stats";
+
+  // Configure git with local scope (doesn't leak to other workflow steps)
+  await exec("git", ["config", "--local", "user.email", email]);
+  await exec("git", ["config", "--local", "user.name", name]);
   await exec("git", ["commit", "-m", commitMessage]);
-  // await exec('git', ['fetch']);
   await exec("git", ["push"]);
   core.info("Readme updated successfully.");
+  core.setOutput("stats_updated", "true");
 };
 
 function handleApiError(error) {
