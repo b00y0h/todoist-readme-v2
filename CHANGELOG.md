@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Skip empty commits** - Only commits when README actually changes
 - **Improved error handling** - Clear, actionable error messages for API failures
 - **Rate limit handling** - Exponential backoff with Retry-After header support
+- **`stats_updated` output** - Workflows can detect if README was updated and run conditional steps
 
 ### Changed
 

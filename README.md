@@ -93,6 +93,24 @@ Best streak: <!-- TODO-IST-LONGEST-STREAK:START --><!-- TODO-IST-LONGEST-STREAK:
 | `TODOIST_API_KEY` | Yes | - | Your Todoist API token from Integrations settings |
 | `PREMIUM` | No | `"false"` | Set to `"true"` if you have Todoist Premium (enables weekly stats) |
 
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| `stats_updated` | `"true"` if README was updated, `"false"` if no changes |
+
+**Example: Conditional step based on stats update**
+```yaml
+- uses: abhisheknaiidu/todoist-readme@v2
+  id: todoist
+  with:
+    TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
+
+- name: Notify on update
+  if: steps.todoist.outputs.stats_updated == 'true'
+  run: echo "Stats were updated!"
+```
+
 ## Available README Tags
 
 ### Legacy Mode (All Stats Together)
@@ -200,6 +218,7 @@ Output: `⏳  Longest streak is 10 days`
 - **Granular tag customization** - Place individual stats anywhere (see README Tags section)
 - **Current streak display** - Shows your current daily streak with motivational messages
 - **Longest streak display** - Shows your all-time best streak
+- **`stats_updated` output** - Workflows can detect if README was updated and run conditional steps
 - **Improved error handling** - Clear, actionable error messages
 - **Skip empty commits** - Only commits when README actually changes
 
